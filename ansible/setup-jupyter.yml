@@ -1,0 +1,62 @@
+---
+- name: Setup Jupyter Notebook on EC2
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install required packages
+      yum:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Install Jupyter Notebook
+      pip:
+        name: jupyter
+
+    - name: Create Jupyter config directory
+      file:
+        path: /home/ec2-user/.jupyter
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: '0755'
+
+    - name: Generate Jupyter Notebook configuration
+      shell: |
+        runuser -l ec2-user -c "jupyter notebook --generate-config"
+
+    - name: Configure Jupyter Notebook
+      lineinfile:
+        path: /home/ec2-user/.jupyter/jupyter_notebook_config.py
+        line: "{{ item }}"
+      with_items:
+        - "c.NotebookApp.ip = '0.0.0.0'"
+        - "c.NotebookApp.port = 8080"
+        - "c.NotebookApp.open_browser = False"
+        - "c.NotebookApp.allow_root = True"
+
+    - name: Create Jupyter systemd service
+      copy:
+        dest: /etc/systemd/system/jupyter.service
+        content: |
+          [Unit]
+          Description=Jupyter Notebook
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=ec2-user
+          ExecStart=/usr/local/bin/jupyter notebook --config=/home/ec2-user/.jupyter/jupyter_notebook_config.py
+          WorkingDirectory=/home/ec2-user
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd and enable Jupyter service
+      systemd:
+        daemon_reload: yes
+        name: jupyter
+        enabled: yes
+        state: started

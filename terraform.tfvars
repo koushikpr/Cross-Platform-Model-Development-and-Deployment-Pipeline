@@ -1,0 +1,8 @@
+instance_type = "p3.2xlarge"
+region = "us-east-1"
+ami = "ami-0abcdef1234567890"
+key_name = "my-key"
+vpc_id = "vpc-12345678"
+subnet_id = "subnet-87654321"
+security_group_id = "sg-09876543"
+user = "ec2-user"

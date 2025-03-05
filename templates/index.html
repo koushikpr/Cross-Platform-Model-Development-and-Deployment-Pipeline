@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terraform EC2 Launcher</title>
+    <script>
+        async function deployInstance(event) {
+            event.preventDefault();
+
+            const formData = {
+                instance_type: document.getElementById("instance_type").value,
+                region: document.getElementById("region").value,
+                ami: document.getElementById("ami").value,
+                key_name: document.getElementById("key_name").value,
+                vpc_id: document.getElementById("vpc_id").value,
+                subnet_id: document.getElementById("subnet_id").value,
+                security_group_id: document.getElementById("security_group_id").value,
+                user: document.getElementById("user").value
+            };
+
+            document.getElementById("status").innerText = "Deploying instance...";
+
+            try {
+                let response = await fetch("/terraform", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData)
+                });
+
+                let result = await response.json();
+                if (response.ok) {
+                    checkInstanceStatus();
+                } else {
+                    document.getElementById("status").innerText = "Error: " + result.error;
+                }
+            } catch (error) {
+                document.getElementById("status").innerText = "Request failed!";
+            }
+        }
+
+        async function checkInstanceStatus() {
+            let statusInterval = setInterval(async () => {
+                let response = await fetch("/terraform/status");
+                let result = await response.json();
+
+                if (result.public_ip) {
+                    clearInterval(statusInterval);
+                    document.getElementById("status").innerText = "Instance ready!";
+                    document.getElementById("launch").style.display = "block";
+                    document.getElementById("launch").setAttribute("href", `http://${result.public_ip}:8080`);
+                } else {
+                    document.getElementById("status").innerText = result.status || "Waiting for instance...";
+                }
+            }, 5000);
+        }
+    </script>
+</head>
+<body>
+    <h2>Terraform EC2 Instance Launcher</h2>
+    <form onsubmit="deployInstance(event)">
+        <label>Instance Type:</label>
+        <input type="text" id="instance_type" value="p3.2xlarge" required><br>
+
+        <label>Region:</label>
+        <input type="text" id="region" value="us-east-1" required><br>
+
+        <label>AMI:</label>
+        <input type="text" id="ami" value="ami-0abcdef1234567890" required><br>
+
+        <label>Key Name:</label>
+        <input type="text" id="key_name" value="my-key" required><br>
+
+        <label>VPC ID:</label>
+        <input type="text" id="vpc_id" value="vpc-12345678" required><br>
+
+        <label>Subnet ID:</label>
+        <input type="text" id="subnet_id" value="subnet-87654321" required><br>
+
+        <label>Security Group ID:</label>
+        <input type="text" id="security_group_id" value="sg-09876543" required><br>
+
+        <label>EC2 User:</label>
+        <input type="text" id="user" value="ec2-user" required><br>
+
+        <button type="submit">Deploy EC2</button>
+    </form>
+
+    <p id="status"></p>
+    <a id="launch" href="#" style="display:none;" target="_blank">Launch Instance</a>
+</body>
+</html>

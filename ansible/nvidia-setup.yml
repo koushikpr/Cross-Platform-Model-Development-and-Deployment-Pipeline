@@ -1,0 +1,50 @@
+---
+- name: Setup NVIDIA GPU and Jupyter
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install required system packages
+      yum:
+        name:
+          - kernel-devel
+          - kernel-headers
+          - gcc
+          - make
+        state: present
+
+    - name: Install NVIDIA driver
+      shell: |
+        curl -O https://us.download.nvidia.com/tesla/535.113.01/NVIDIA-Linux-x86_64-535.113.01.run
+        chmod +x NVIDIA-Linux-x86_64-535.113.01.run
+        sudo ./NVIDIA-Linux-x86_64-535.113.01.run --silent
+      args:
+        creates: /usr/bin/nvidia-smi
+
+    - name: Reboot the machine
+      reboot:
+
+    - name: Install CUDA Toolkit
+      shell: |
+        wget https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda_12.2.2_535.113.01_linux.run
+        sudo sh cuda_12.2.2_535.113.01_linux.run --silent --toolkit
+      args:
+        creates: /usr/local/cuda/bin/nvcc
+
+    - name: Add CUDA to system path
+      lineinfile:
+        path: /home/ec2-user/.bashrc
+        line: "{{ item }}"
+      with_items:
+        - 'export PATH=/usr/local/cuda/bin:$PATH'
+        - 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH'
+
+    - name: Install PyTorch
+      pip:
+        name:
+          - torch
+          - torchvision
+          - torchaudio
+        extra_args: "--index-url https://download.pytorch.org/whl/cu121"
+
+    - name: Verify CUDA installation
+      command: nvidia-smi
