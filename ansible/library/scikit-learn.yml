@@ -1,0 +1,16 @@
+---
+- name: Install Scikit-Learn on EC2
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install Python3 and pip
+      yum:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Install scikit-learn
+      pip:
+        name:
+          - scikit-learn

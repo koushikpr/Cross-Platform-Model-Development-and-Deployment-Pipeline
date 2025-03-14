@@ -1,0 +1,57 @@
+---
+- name: Install and Configure Grafana on EC2
+  hosts: localhost
+  become: yes
+  tasks:
+  
+    - name: Install required packages
+      yum:
+        name:
+          - wget
+          - git
+        state: present
+
+    - name: Add Grafana YUM repository
+      yum_repository:
+        name: grafana
+        description: Grafana YUM repository
+        baseurl: https://packages.grafana.com/oss/rpm
+        gpgcheck: yes
+        gpgkey: https://packages.grafana.com/gpg.key
+        enabled: yes
+
+    - name: Install Grafana
+      yum:
+        name: grafana
+        state: present
+
+    - name: Start and enable Grafana service
+      systemd:
+        name: grafana-server
+        enabled: yes
+        state: started
+
+    - name: Allow Grafana through firewall (Port 3000)
+      firewalld:
+        port: 3000/tcp
+        permanent: yes
+        state: enabled
+      notify:
+        - Restart firewalld
+
+    - name: Install Grafana plugins (Optional)
+      command: grafana-cli plugins install grafana-piechart-panel
+      become_user: grafana
+      args:
+        creates: /var/lib/grafana/plugins/grafana-piechart-panel
+
+    - name: Restart Grafana service
+      systemd:
+        name: grafana-server
+        state: restarted
+
+  handlers:
+    - name: Restart firewalld
+      service:
+        name: firewalld
+        state: restarted

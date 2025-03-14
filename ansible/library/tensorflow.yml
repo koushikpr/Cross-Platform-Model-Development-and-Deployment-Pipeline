@@ -1,0 +1,17 @@
+---
+- name: Install TensorFlow and Keras on EC2
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install Python3 and pip
+      yum:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Install TensorFlow and Keras
+      pip:
+        name:
+          - tensorflow
+          - keras
