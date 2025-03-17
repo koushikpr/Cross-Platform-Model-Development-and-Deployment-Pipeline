@@ -3,90 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terraform EC2 Launcher</title>
-    <script>
-        async function deployInstance(event) {
-            event.preventDefault();
+    <title>Flask Terraform API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            width: 50%;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"], button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .status {
+            font-size: 16px;
+            color: #333;
+            margin-top: 20px;
+        }
+        .status p {
+            margin: 0;
+        }
+        .status p.error {
+            color: red;
+        }
+        .form-section {
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
 
-            const formData = {
-                instance_type: document.getElementById("instance_type").value,
-                region: document.getElementById("region").value,
-                ami: document.getElementById("ami").value,
-                key_name: document.getElementById("key_name").value,
-                vpc_id: document.getElementById("vpc_id").value,
-                subnet_id: document.getElementById("subnet_id").value,
-                security_group_id: document.getElementById("security_group_id").value,
-                user: document.getElementById("user").value
+    <div class="container">
+        <h1>Terraform Instance Management</h1>
+
+        <!-- EC2 Launch Form -->
+        <div class="form-section">
+            <h2>Launch EC2 Instance</h2>
+            <form id="ec2Form" method="POST">
+                <div class="form-group">
+                    <label for="ec2_instance_type">Instance Type:</label>
+                    <input type="text" id="ec2_instance_type" name="instance_type" placeholder="e.g., t2.micro" required>
+                </div>
+                <div class="form-group">
+                    <label for="ec2_ami_id">AMI ID:</label>
+                    <input type="text" id="ec2_ami_id" name="ami_id" placeholder="e.g., ami-12345678" required>
+                </div>
+                <div class="form-group">
+                    <label for="ec2_vpc_id">VPC ID:</label>
+                    <input type="text" id="ec2_vpc_id" name="vpc_id" placeholder="e.g., vpc-1234abcd" required>
+                </div>
+                <div class="form-group">
+                    <label for="ec2_subnet_id">Subnet ID:</label>
+                    <input type="text" id="ec2_subnet_id" name="subnet_id" placeholder="e.g., subnet-1234abcd" required>
+                </div>
+                <div class="form-group">
+                    <label for="ec2_key_name">Key Name:</label>
+                    <input type="text" id="ec2_key_name" name="key_name" placeholder="e.g., my-keypair" required>
+                </div>
+                <div class="form-group">
+                    <label for="ec2_iam_instance_profile">IAM Instance Profile:</label>
+                    <input type="text" id="ec2_iam_instance_profile" name="iam_instance_profile" placeholder="e.g., my-iam-profile" required>
+                </div>
+                <div class="form-group">
+                    <label for="ec2_ansible_s3_bucket">Ansible S3 Bucket:</label>
+                    <input type="text" id="ec2_ansible_s3_bucket" name="ansible_s3_bucket" placeholder="e.g., my-bucket" required>
+                </div>
+                <div class="form-group">
+                    <label for="ec2_ansible_playbook">Ansible Playbook:</label>
+                    <input type="text" id="ec2_ansible_playbook" name="ansible_playbook" placeholder="e.g., playbook.yml" required>
+                </div>
+                <button type="button" onclick="launchEc2Instance()">Launch EC2 Instance</button>
+            </form>
+        </div>
+
+        <!-- OpenStack Launch Form -->
+        <div class="form-section">
+            <h2>Launch OpenStack Instance</h2>
+            <form id="openstackForm" method="POST">
+                <div class="form-group">
+                    <label for="openstack_instance_type">Instance Type:</label>
+                    <input type="text" id="openstack_instance_type" name="instance_type" placeholder="e.g., m1.small" required>
+                </div>
+                <div class="form-group">
+                    <label for="openstack_ami_id">AMI ID:</label>
+                    <input type="text" id="openstack_ami_id" name="ami_id" placeholder="e.g., openstack-ami-12345678" required>
+                </div>
+                <div class="form-group">
+                    <label for="openstack_vpc_id">VPC ID:</label>
+                    <input type="text" id="openstack_vpc_id" name="vpc_id" placeholder="e.g., openstack-vpc-1234abcd" required>
+                </div>
+                <div class="form-group">
+                    <label for="openstack_subnet_id">Subnet ID:</label>
+                    <input type="text" id="openstack_subnet_id" name="subnet_id" placeholder="e.g., openstack-subnet-1234abcd" required>
+                </div>
+                <div class="form-group">
+                    <label for="openstack_key_name">Key Name:</label>
+                    <input type="text" id="openstack_key_name" name="key_name" placeholder="e.g., openstack-keypair" required>
+                </div>
+                <div class="form-group">
+                    <label for="openstack_iam_instance_profile">IAM Instance Profile:</label>
+                    <input type="text" id="openstack_iam_instance_profile" name="iam_instance_profile" placeholder="e.g., openstack-iam-profile" required>
+                </div>
+                <div class="form-group">
+                    <label for="openstack_ansible_s3_bucket">Ansible S3 Bucket:</label>
+                    <input type="text" id="openstack_ansible_s3_bucket" name="ansible_s3_bucket" placeholder="e.g., openstack-bucket" required>
+                </div>
+                <div class="form-group">
+                    <label for="openstack_ansible_playbook">Ansible Playbook:</label>
+                    <input type="text" id="openstack_ansible_playbook" name="ansible_playbook" placeholder="e.g., openstack-playbook.yml" required>
+                </div>
+                <button type="button" onclick="launchOpenStackInstance()">Launch OpenStack Instance</button>
+            </form>
+        </div>
+
+        <h2>Instance Status</h2>
+        <button onclick="getInstanceStatus()">Get Instance Status</button>
+
+        <div class="status" id="statusMessage"></div>
+    </div>
+
+    <script>
+        async function launchEc2Instance() {
+            const instanceData = {
+                instance_type: document.getElementById("ec2_instance_type").value,
+                ami_id: document.getElementById("ec2_ami_id").value,
+                vpc_id: document.getElementById("ec2_vpc_id").value,
+                subnet_id: document.getElementById("ec2_subnet_id").value,
+                key_name: document.getElementById("ec2_key_name").value,
+                iam_instance_profile: document.getElementById("ec2_iam_instance_profile").value,
+                ansible_s3_bucket: document.getElementById("ec2_ansible_s3_bucket").value,
+                ansible_playbook: document.getElementById("ec2_ansible_playbook").value
             };
 
-            document.getElementById("status").innerText = "Deploying instance...";
+            const response = await fetch("/terraform/ec2", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(instanceData)
+            });
 
-            try {
-                let response = await fetch("/terraform", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(formData)
-                });
+            const result = await response.json();
+            const statusMessage = document.getElementById("statusMessage");
 
-                let result = await response.json();
-                if (response.ok) {
-                    checkInstanceStatus();
-                } else {
-                    document.getElementById("status").innerText = "Error: " + result.error;
-                }
-            } catch (error) {
-                document.getElementById("status").innerText = "Request failed!";
+            if (response.ok) {
+                statusMessage.innerHTML = `<p>EC2 Instance launched successfully!</p>
+                                           <p>Public IP: ${result.public_ip}</p>
+                                           <p>VPC ID: ${result.vpc_id}</p>
+                                           <p>Subnet ID: ${result.subnet_id}</p>`;
+            } else {
+                statusMessage.innerHTML = `<p class="error">Error: ${result.error}</p>`;
             }
         }
 
-        async function checkInstanceStatus() {
-            let statusInterval = setInterval(async () => {
-                let response = await fetch("/terraform/status");
-                let result = await response.json();
+        async function launchOpenStackInstance() {
+            const instanceData = {
+                instance_type: document.getElementById("openstack_instance_type").value,
+                ami_id: document.getElementById("openstack_ami_id").value,
+                vpc_id: document.getElementById("openstack_vpc_id").value,
+                subnet_id: document.getElementById("openstack_subnet_id").value,
+                key_name: document.getElementById("openstack_key_name").value,
+                iam_instance_profile: document.getElementById("openstack_iam_instance_profile").value,
+                ansible_s3_bucket: document.getElementById("openstack_ansible_s3_bucket").value,
+                ansible_playbook: document.getElementById("openstack_ansible_playbook").value
+            };
 
-                if (result.public_ip) {
-                    clearInterval(statusInterval);
-                    document.getElementById("status").innerText = "Instance ready!";
-                    document.getElementById("launch").style.display = "block";
-                    document.getElementById("launch").setAttribute("href", `http://${result.public_ip}:8080`);
-                } else {
-                    document.getElementById("status").innerText = result.status || "Waiting for instance...";
-                }
-            }, 5000);
+            const response = await fetch("/terraform/openstack", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(instanceData)
+            });
+
+            const result = await response.json();
+            const statusMessage = document.getElementById("statusMessage");
+
+            if (response.ok) {
+                statusMessage.innerHTML = `<p>OpenStack Instance launched successfully!</p>
+                                           <p>Public IP: ${result.public_ip}</p>
+                                           <p>VPC ID: ${result.vpc_id}</p>
+                                           <p>Subnet ID: ${result.subnet_id}</p>`;
+            } else {
+                statusMessage.innerHTML = `<p class="error">Error: ${result.error}</p>`;
+            }
+        }
+
+        async function getInstanceStatus() {
+            const response = await fetch("/terraform/status");
+            const result = await response.json();
+            const statusMessage = document.getElementById("statusMessage");
+
+            if (response.ok) {
+                statusMessage.innerHTML = `<p>Instance Public IP: ${result.public_ip}</p>
+                                           <p>VPC ID: ${result.vpc_id}</p>
+                                           <p>Subnet ID: ${result.subnet_id}</p>`;
+            } else {
+                statusMessage.innerHTML = `<p class="error">${result.status}</p>`;
+            }
         }
     </script>
-</head>
-<body>
-    <h2>Terraform EC2 Instance Launcher</h2>
-    <form onsubmit="deployInstance(event)">
-        <label>Instance Type:</label>
-        <input type="text" id="instance_type" value="p3.2xlarge" required><br>
 
-        <label>Region:</label>
-        <input type="text" id="region" value="us-east-1" required><br>
-
-        <label>AMI:</label>
-        <input type="text" id="ami" value="ami-0abcdef1234567890" required><br>
-
-        <label>Key Name:</label>
-        <input type="text" id="key_name" value="my-key" required><br>
-
-        <label>VPC ID:</label>
-        <input type="text" id="vpc_id" value="vpc-12345678" required><br>
-
-        <label>Subnet ID:</label>
-        <input type="text" id="subnet_id" value="subnet-87654321" required><br>
-
-        <label>Security Group ID:</label>
-        <input type="text" id="security_group_id" value="sg-09876543" required><br>
-
-        <label>EC2 User:</label>
-        <input type="text" id="user" value="ec2-user" required><br>
-
-        <button type="submit">Deploy EC2</button>
-    </form>
-
-    <p id="status"></p>
-    <a id="launch" href="#" style="display:none;" target="_blank">Launch Instance</a>
 </body>
 </html>

@@ -7,51 +7,53 @@ from flask_swagger_ui import get_swaggerui_blueprint
 app = Flask(__name__)
 
 # File to store Terraform variables
-TERRAFORM_VARS_FILE = "terraform_vars.json"
+TERRAFORM_VARS_FILE_EC2 = "terraform/ec2/variables.tfvars"
+TERRAFORM_VARS_FILE_OPENSTACK = "terraform/openstack/variables.tfvars"
 
-# Swagger UI setup
-SWAGGER_URL = '/swagger'  # Swagger UI route
-API_URL = '/swagger/static/swagger.yaml'  # Path to Swagger YAML
-swagger_ui_blueprint = get_swaggerui_blueprint(SWAGGER_URL, API_URL)
 
+SWAGGER_URL = '/swagger'
+API_URL = '/static/swagger.json'  # Path to your Swagger JSON definition
+swagger_ui_bp = get_swaggerui_blueprint(SWAGGER_URL, API_URL, config={'app_name': "Flask Terraform API"})
+app.register_blueprint(swagger_ui_bp, url_prefix=SWAGGER_URL)
 
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# Load stored Terraform variables
-def load_variables():
-    if os.path.exists(TERRAFORM_VARS_FILE):
-        with open(TERRAFORM_VARS_FILE, "r") as file:
+# Load stored Terraform variables for EC2 and OpenStack
+def load_variables(path):
+    if os.path.exists(path):
+        with open(path, "r") as file:
             return json.load(file)
     return {}
 
-# Save Terraform variables
-def save_variables(data):
-    with open(TERRAFORM_VARS_FILE, "w") as file:
+# Save Terraform variables for EC2 and OpenStack
+def save_variables(data, path):
+    with open(path, "w") as file:
         json.dump(data, file, indent=4)
 
-@app.route("/terraform", methods=["POST"])
-def create_instance():
+# EC2 Launch Endpoint
+@app.route("/terraform/ec2", methods=["POST"])
+def create_instance_ec2():
     try:
         data = request.json  # Get JSON from request
         if not data:
             return jsonify({"error": "Invalid JSON data"}), 400
 
-        save_variables(data)
+        save_variables(data, TERRAFORM_VARS_FILE_EC2)
 
-        # Convert JSON variables to Terraform format
+        # Convert JSON variables to Terraform format for EC2
         tf_vars = "\n".join([f'{key} = "{value}"' for key, value in data.items()])
-        with open("terraform.tfvars", "w") as tf_file:
+        with open("terraform/ec2/gpuinstancelaunch-ec2.tfvars", "w") as tf_file:
             tf_file.write(tf_vars)
 
-        # Run Terraform
-        subprocess.run(["terraform", "init"], check=True)
-        subprocess.run(["terraform", "apply", "-auto-approve"], check=True)
+        # Run Terraform for EC2
+        subprocess.run(["terraform", "init", "-chdir=terraform/ec2"], check=True)
+        subprocess.run(["terraform", "apply", "-auto-approve", "-chdir=terraform/ec2"], check=True)
 
-        # Extract relevant details from Terraform output
-        output = subprocess.run(["terraform", "output", "-json"], capture_output=True, text=True)
+        # Extract relevant details from Terraform output for EC2
+        output = subprocess.run(["terraform", "output", "-json", "-chdir=terraform/ec2"], capture_output=True, text=True)
         tf_output = json.loads(output.stdout)
 
         public_ip = tf_output.get("instance_public_ip", {}).get("value", "")
@@ -59,7 +61,43 @@ def create_instance():
         subnet_id = tf_output.get("subnet_id", {}).get("value", "")
 
         return jsonify({
-            "message": "Instance launched",
+            "message": "EC2 Instance launched",
+            "public_ip": public_ip,
+            "vpc_id": vpc_id,
+            "subnet_id": subnet_id
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# OpenStack Launch Endpoint
+@app.route("/terraform/openstack", methods=["POST"])
+def create_instance_openstack():
+    try:
+        data = request.json  # Get JSON from request
+        if not data:
+            return jsonify({"error": "Invalid JSON data"}), 400
+
+        save_variables(data, TERRAFORM_VARS_FILE_OPENSTACK)
+
+        # Convert JSON variables to Terraform format for OpenStack
+        tf_vars = "\n".join([f'{key} = "{value}"' for key, value in data.items()])
+        with open("terraform/openstack/gpuinstancelaunch-openstack.tfvars", "w") as tf_file:
+            tf_file.write(tf_vars)
+
+        # Run Terraform for OpenStack
+        subprocess.run(["terraform", "init", "-chdir=terraform/openstack"], check=True)
+        subprocess.run(["terraform", "apply", "-auto-approve", "-chdir=terraform/openstack"], check=True)
+
+        # Extract relevant details from Terraform output for OpenStack
+        output = subprocess.run(["terraform", "output", "-json", "-chdir=terraform/openstack"], capture_output=True, text=True)
+        tf_output = json.loads(output.stdout)
+
+        public_ip = tf_output.get("instance_public_ip", {}).get("value", "")
+        vpc_id = tf_output.get("vpc_id", {}).get("value", "")
+        subnet_id = tf_output.get("subnet_id", {}).get("value", "")
+
+        return jsonify({
+            "message": "OpenStack Instance launched",
             "public_ip": public_ip,
             "vpc_id": vpc_id,
             "subnet_id": subnet_id
@@ -72,33 +110,13 @@ def get_instance_status():
     if not os.path.exists("terraform.tfstate"):
         return jsonify({"status": "No instance deployed yet"}), 404
 
-    # Get Terraform output details
+    # Get Terraform output details for EC2 or OpenStack
     output = subprocess.run(["terraform", "output", "-json"], capture_output=True, text=True)
     tf_output = json.loads(output.stdout)
 
     public_ip = tf_output.get("instance_public_ip", {}).get("value", "")
-    vpc_id = tf_output.get("vpc_id", {}).get("value", "")
-    subnet_id = tf_output.get("subnet_id", {}).get("value", "")
-
-    if public_ip:
-        return jsonify({
-            "public_ip": public_ip,
-            "vpc_id": vpc_id,
-            "subnet_id": subnet_id
-        })
-    else:
-        return jsonify({"status": "Instance launching..."}), 202
-
-@app.route("/launch", methods=["GET"])
-def launch_instance():
-    response = get_instance_status()
-    data = response.json
-    if "public_ip" in data:
-        return redirect(f"http://{data['public_ip']}:8080")
-    return jsonify({"message": "Instance not ready yet"}), 404
-
 
 
 if __name__ == "__main__":
-    app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
+
     app.run(debug=True)
