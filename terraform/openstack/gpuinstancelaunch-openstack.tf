@@ -116,6 +116,24 @@ resource "openstack_compute_instance_v2" "p3_instance" {
     # Fetch Ansible Playbook from S3
     aws s3 cp s3://${var.ansible_s3_bucket}/${var.ansible_playbook} ${var.home_dir}/ansible/
 
+
+  # Fetch Ansible Playbook from Git
+    git clone https://github.com/koushikpr/Cross-Platform-Model-Development-and-Deployment-Pipeline
+
+    cd Cross-Platform-Model-Development-and-Deployment-Pipeline
+
+    echo "Installing Grafana"
+
+    ansible-playbook ansible/configurations/grafana-setup.yml
+
+    echo "Installing Nvidia-CUDA"
+
+    ansible-playbook ansible/configurations/nvidia-setup.yml
+
+    echo "Installing Jupyter-Notebook"
+
+    ansible-playbook ansible/configurations/jupyter-setup.yml
+
     # Run the Playbook
     ansible-playbook ${var.ansible_playbook}
   EOF

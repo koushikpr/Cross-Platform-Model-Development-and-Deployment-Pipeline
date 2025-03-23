@@ -38,13 +38,6 @@
         - 'export PATH=/usr/local/cuda/bin:$PATH'
         - 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH'
 
-    - name: Install PyTorch
-      pip:
-        name:
-          - torch
-          - torchvision
-          - torchaudio
-        extra_args: "--index-url https://download.pytorch.org/whl/cu121"
 
     - name: Verify CUDA installation
       command: nvidia-smi

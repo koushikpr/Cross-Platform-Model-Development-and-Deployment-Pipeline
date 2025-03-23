@@ -54,7 +54,7 @@ def create_instance_ec2():
 
         # Extract relevant details from Terraform output for EC2
         output = subprocess.run(["terraform", "output", "-json", "-chdir=terraform/ec2"], capture_output=True, text=True)
-        tf_output = json.loads(output.stdout)
+        tf_output = json.loads(output.stdout)   
 
         public_ip = tf_output.get("instance_public_ip", {}).get("value", "")
         vpc_id = tf_output.get("vpc_id", {}).get("value", "")
