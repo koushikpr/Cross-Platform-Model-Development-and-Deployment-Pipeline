@@ -103,6 +103,66 @@
           }
         }
       }
+    },
+    "/deploy/fedora": {
+      "post": {
+        "summary": "Deploy Fedora Server with Ansible",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "server_ip": { "type": "string" },
+                  "ssh_user": { "type": "string" },
+                  "ssh_password": { "type": "string" },
+                  "libraries": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Fedora server deployed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "redirect_url": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/redirect/jupyter": {
+      "get": {
+        "summary": "Redirect to Jupyter Notebook on the deployed Fedora Server",
+        "parameters": [
+          {
+            "name": "server_ip",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to Jupyter Notebook"
+          }
+        }
+      }
     }
   }
 }

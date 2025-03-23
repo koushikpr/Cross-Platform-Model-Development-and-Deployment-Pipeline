@@ -3,7 +3,7 @@ import json
 import subprocess
 from flask import Flask, render_template, request, jsonify, redirect
 from flask_swagger_ui import get_swaggerui_blueprint
-
+import paramiko
 app = Flask(__name__)
 
 # File to store Terraform variables
@@ -115,6 +115,71 @@ def get_instance_status():
     tf_output = json.loads(output.stdout)
 
     public_ip = tf_output.get("instance_public_ip", {}).get("value", "")
+
+
+
+
+FEDORA_PLAYBOOKS_DIR = "/home/ec2-user/Cross-Platform-Model-Development-and-Deployment-Pipeline/ansible/configurations/"
+LIBRARY_PLAYBOOKS_DIR = "/home/ec2-user/Cross-Platform-Model-Development-and-Deployment-Pipeline/ansible/library/"
+
+@app.route("/deploy/fedora", methods=["POST"])
+def deploy_fedora():
+    try:
+        data = request.json
+        server_ip = data.get("server_ip")
+        ssh_user = data.get("ssh_user")
+        ssh_password = data.get("ssh_password")
+        selected_libraries = data.get("libraries", [])
+
+        if not server_ip or not ssh_user or not ssh_password:
+            return jsonify({"error": "Missing required SSH details"}), 400
+
+        # Establish SSH Connection
+        print("Connecting to SSH Client: "+ssh_user+"@"+server_ip)
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        
+
+        try:
+            ssh.connect(server_ip, username=ssh_user, password=ssh_password)
+            print("Connected to "+ssh_user+"@"+server_ip)
+        except Exception as e:
+            return jsonify({"error": f"SSH Connection failed: {str(e)}"}), 500
+
+        # Install Ansible if not installed
+        print("Verifying Ansible Installed")
+        stdin, stdout, stderr = ssh.exec_command("which ansible || sudo dnf install -y ansible")
+        stdout.channel.recv_exit_status()
+
+        # Run Base Configuration Playbook
+        nvidia = f"{FEDORA_PLAYBOOKS_DIR}nvidia-setup.yml"
+        jupyter = f"{FEDORA_PLAYBOOKS_DIR}jupyter-setup.yml"
+        grafana = f"{FEDORA_PLAYBOOKS_DIR}grafana-setup.yml"
+        print("Installing NVIDIA CUDA Toolkit")
+        ssh.exec_command(f"ansible-playbook {nvidia}")
+        print("Installing Grafana")
+        ssh.exec_command(f"ansible-playbook {grafana}")
+        print("Installing Jupyter NoteBook")
+        ssh.exec_command(f"ansible-playbook {jupyter}")
+
+        # Run selected library playbooks
+        for lib in selected_libraries:
+            print("Installing Library: " + lib)
+            lib_playbook = f"{LIBRARY_PLAYBOOKS_DIR}{lib}.yml"
+            ssh.exec_command(f"ansible-playbook {lib_playbook}")
+
+        ssh.close()
+
+        return jsonify({"message": "Fedora Server setup complete"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

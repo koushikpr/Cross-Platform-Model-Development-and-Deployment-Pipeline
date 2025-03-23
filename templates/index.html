@@ -29,7 +29,7 @@
         label {
             font-weight: bold;
         }
-        input[type="text"], input[type="number"], button {
+        input[type="text"], input[type="password"], input[type="number"], button {
             width: 100%;
             padding: 10px;
             margin-top: 5px;
@@ -147,6 +147,42 @@
             </form>
         </div>
 
+        <!-- Fedora Launch Form -->
+        <div class="form-section">
+            <h2>[Testing] Deploy Fedora Server</h2>
+            <form id="fedoraForm" method="POST">
+                <div class="form-group">
+                    <label for="fedora_ip">Server IP Address:</label>
+                    <input type="text" id="fedora_ip" name="server_ip" placeholder="e.g., 192.168.1.100" required>
+                </div>
+                <div class="form-group">
+                    <label for="fedora_ssh_user">SSH User:</label>
+                    <input type="text" id="fedora_ssh_user" name="ssh_user" placeholder="e.g., fedora" required>
+                </div>
+                <div class="form-group">
+                    <label for="fedora_ssh_password">SSH Password:</label>
+                    <input type="password" id="fedora_ssh_password" name="ssh_password" placeholder="Enter Password" required>
+                </div>
+                <div class="form-group">
+                    <label>Libraries to Install:</label>
+                    <div>
+                        <input type="checkbox" id="pytorch" name="libraries" value="pytorch">
+                        <label for="pytorch">PyTorch</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="tensorflow" name="libraries" value="tensorflow">
+                        <label for="tensorflow">TensorFlow</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="scikit-learn" name="libraries" value="scikit-learn">
+                        <label for="scikit-learn">Scikit-learn</label>
+                    </div>
+                </div>
+                <button type="button" onclick="deployFedoraServer()">Deploy Fedora Server</button>
+            </form>
+        </div>
+
+
         <h2>Instance Status</h2>
         <button onclick="getInstanceStatus()">Get Instance Status</button>
 
@@ -231,6 +267,36 @@
                                            <p>Subnet ID: ${result.subnet_id}</p>`;
             } else {
                 statusMessage.innerHTML = `<p class="error">${result.status}</p>`;
+            }
+        }
+
+        async function deployFedoraServer() {
+            const selectedLibraries = Array.from(document.querySelectorAll('input[name="libraries"]:checked')).map(cb => cb.value);
+            const serverData = {
+                server_ip: document.getElementById("fedora_ip").value,
+                ssh_user: document.getElementById("fedora_ssh_user").value,
+                ssh_key: document.getElementById("fedora_ssh_password").value,
+                libraries: selectedLibraries
+            };
+
+            const response = await fetch("/deploy/fedora", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(serverData)
+            });
+
+            const result = await response.json();
+            const statusMessage = document.getElementById("statusMessage");
+
+            if (response.ok) {
+                statusMessage.innerHTML = `<p>Fedora Server deployed successfully!</p>`;
+                setTimeout(() => {
+                    window.location.href = `http://${serverData.server_ip}:8080`;
+                }, 2000);
+            } else {
+                statusMessage.innerHTML = `<p class="error">Error: ${result.error}</p>`;
             }
         }
     </script>
