@@ -1,40 +1,55 @@
 ---
-- name: Setup Jupyter Notebook on EC2
+- name: Setup Jupyter Notebook on Fedora
   hosts: localhost
   become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.13
+
   tasks:
+    - name: Check if Jupyter service is running
+      systemd:
+        name: jupyter
+        state: started
+      register: jupyter_status
+      ignore_errors: yes
+
     - name: Install required packages
-      yum:
+      dnf:
         name:
           - python3
           - python3-pip
         state: present
+      when: jupyter_status.failed  # Only run if Jupyter is not running
 
     - name: Install Jupyter Notebook
       pip:
         name: jupyter
+      when: jupyter_status.failed  # Only run if Jupyter is not running
 
     - name: Create Jupyter config directory
       file:
-        path: /home/ec2-user/.jupyter
+        path: /home/aman/.jupyter
         state: directory
-        owner: ec2-user
-        group: ec2-user
+        owner: aman
+        group: aman
         mode: '0755'
+      when: jupyter_status.failed  # Only run if Jupyter is not running
 
     - name: Generate Jupyter Notebook configuration
       shell: |
-        runuser -l ec2-user -c "jupyter notebook --generate-config"
+        runuser -l aman -c "jupyter notebook --generate-config"
+      when: jupyter_status.failed  # Only run if Jupyter is not running
 
     - name: Configure Jupyter Notebook
       lineinfile:
-        path: /home/ec2-user/.jupyter/jupyter_notebook_config.py
+        path: /home/aman/.jupyter/jupyter_notebook_config.py
         line: "{{ item }}"
       with_items:
         - "c.NotebookApp.ip = '0.0.0.0'"
         - "c.NotebookApp.port = 8080"
         - "c.NotebookApp.open_browser = False"
         - "c.NotebookApp.allow_root = True"
+      when: jupyter_status.failed  # Only run if Jupyter is not running
 
     - name: Create Jupyter systemd service
       copy:
@@ -46,17 +61,18 @@
 
           [Service]
           Type=simple
-          User=ec2-user
-          ExecStart=/usr/local/bin/jupyter notebook --config=/home/ec2-user/.jupyter/jupyter_notebook_config.py
-          WorkingDirectory=/home/ec2-user
+          User=aman
+          ExecStart=/usr/local/bin/jupyter notebook --config=/home/aman/.jupyter/jupyter_notebook_config.py
+          WorkingDirectory=/home/aman
           Restart=always
 
           [Install]
           WantedBy=multi-user.target
-
+      when: jupyter_status.failed  # Only run if Jupyter is not running
     - name: Reload systemd and enable Jupyter service
       systemd:
         daemon_reload: yes
         name: jupyter
         enabled: yes
         state: started
+      when: jupyter_status.failed  # Only run if Jupyter is not running
