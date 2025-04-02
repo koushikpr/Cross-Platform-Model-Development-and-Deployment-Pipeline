@@ -183,31 +183,28 @@ def deploy_fedora():
 @app.route("/test/local", methods=["POST"])
 def test_local_model():
     try:
-        if 'file' not in request.files:
+        if 'notebook_file' not in request.files:
             return jsonify({"error": "No file provided"}), 400
 
-        file = request.files['file']
+        file = request.files['notebook_file']
         model_name = request.form.get('model_name')
 
         if not file.filename.endswith(".ipynb"):
             return jsonify({"error": "Invalid file format. Only .ipynb allowed"}), 400
 
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file_path = os.path.join("/home/aman/Downloads/", file.filename)
         file.save(file_path)
 
         # Execute the Jupyter Notebook
         with open(file_path) as f:
             nb = nbformat.read(f, as_version=4)
 
-        ep = ExecutePreprocessor(timeout=600, kernel_name='python3')
-        ep.preprocess(nb, {'metadata': {'path': app.config['UPLOAD_FOLDER']}})
+        return redirect('https://10.156.115.33:8080/Downloads/'+file.filename)
+
+        
 
         # Save the executed notebook
-        executed_notebook_path = file_path.replace(".ipynb", "_executed.ipynb")
-        with open(executed_notebook_path, "w", encoding="utf-8") as f:
-            nbformat.write(nb, f)
-
-        return send_file(executed_notebook_path, as_attachment=True)
+       
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
