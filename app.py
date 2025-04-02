@@ -199,7 +199,14 @@ def test_local_model():
         with open(file_path) as f:
             nb = nbformat.read(f, as_version=4)
 
-        return jsonify({"message": "File Uploaded to Server", "executed_notebook": "https://10.156.115.33:8080/Downloads/" }), 200
+        filename = "https://10.156.115.33:8080/notebooks/Downloads/"+file.filename
+
+        res = {
+            "message": "File Uploaded to Server",
+            "executed_notebook": filename
+        }
+
+        return jsonify(res), 200
 
         
 
