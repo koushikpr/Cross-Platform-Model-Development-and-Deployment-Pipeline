@@ -163,6 +163,55 @@
           }
         }
       }
+    },
+    "/test/local": {
+  "post": {
+    "summary": "Run a Jupyter Notebook locally",
+    "requestBody": {
+      "required": true,
+      "content": {
+        "multipart/form-data": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "notebook_file": {
+                "type": "string",
+                "format": "binary",
+                "description": "The Jupyter Notebook (.ipynb) file to be executed locally."
+              },
+              "model_name": {
+                "type": "string",
+                "description": "The name of the model to be tested within the notebook."
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "Notebook executed successfully",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string" },
+                "executed_notebook": { "type": "string", "description": "Download URL for the executed notebook." }
+              }
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Invalid request data"
+      },
+      "500": {
+        "description": "Error executing the notebook"
+      }
     }
+  }
+}
+
   }
 }

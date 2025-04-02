@@ -4,6 +4,10 @@ import subprocess
 from flask import Flask, render_template, request, jsonify, redirect
 from flask_swagger_ui import get_swaggerui_blueprint
 import paramiko
+import nbformat
+from nbconvert.preprocessors import ExecutePreprocessor
+
+
 app = Flask(__name__)
 
 # File to store Terraform variables
@@ -119,8 +123,8 @@ def get_instance_status():
 
 
 
-FEDORA_PLAYBOOKS_DIR = "/home/ec2-user/Cross-Platform-Model-Development-and-Deployment-Pipeline/ansible/configurations/"
-LIBRARY_PLAYBOOKS_DIR = "/home/ec2-user/Cross-Platform-Model-Development-and-Deployment-Pipeline/ansible/library/"
+FEDORA_PLAYBOOKS_DIR = "/home/aman/Desktop/Cross-Platform-Model-Development-and-Deployment-Pipeline/ansible/configurations/"
+LIBRARY_PLAYBOOKS_DIR = "/home/aman/Desktop/Cross-Platform-Model-Development-and-Deployment-Pipeline/ansible/library/"
 
 @app.route("/deploy/fedora", methods=["POST"])
 def deploy_fedora():
@@ -131,6 +135,8 @@ def deploy_fedora():
         ssh_password = data.get("ssh_password")
         selected_libraries = data.get("libraries", [])
 
+
+        print(server_ip,ssh_user,ssh_password)
         if not server_ip or not ssh_user or not ssh_password:
             return jsonify({"error": "Missing required SSH details"}), 400
 
@@ -146,9 +152,10 @@ def deploy_fedora():
         except Exception as e:
             return jsonify({"error": f"SSH Connection failed: {str(e)}"}), 500
 
+        ssh.exec_command("sudo su")
         # Install Ansible if not installed
         print("Verifying Ansible Installed")
-        stdin, stdout, stderr = ssh.exec_command("which ansible || sudo dnf install -y ansible")
+        stdin, stdout, stderr = ssh.exec_command("which ansible || dnf install -y ansible")
         stdout.channel.recv_exit_status()
 
         # Run Base Configuration Playbook
@@ -156,9 +163,7 @@ def deploy_fedora():
         jupyter = f"{FEDORA_PLAYBOOKS_DIR}jupyter-setup.yml"
         grafana = f"{FEDORA_PLAYBOOKS_DIR}grafana-setup.yml"
         print("Installing NVIDIA CUDA Toolkit")
-        ssh.exec_command(f"ansible-playbook {nvidia}")
         print("Installing Grafana")
-        ssh.exec_command(f"ansible-playbook {grafana}")
         print("Installing Jupyter NoteBook")
         ssh.exec_command(f"ansible-playbook {jupyter}")
 
@@ -175,6 +180,36 @@ def deploy_fedora():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/test/local", methods=["POST"])
+def test_local_model():
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+
+        file = request.files['file']
+        model_name = request.form.get('model_name')
+
+        if not file.filename.endswith(".ipynb"):
+            return jsonify({"error": "Invalid file format. Only .ipynb allowed"}), 400
+
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(file_path)
+
+        # Execute the Jupyter Notebook
+        with open(file_path) as f:
+            nb = nbformat.read(f, as_version=4)
+
+        ep = ExecutePreprocessor(timeout=600, kernel_name='python3')
+        ep.preprocess(nb, {'metadata': {'path': app.config['UPLOAD_FOLDER']}})
+
+        # Save the executed notebook
+        executed_notebook_path = file_path.replace(".ipynb", "_executed.ipynb")
+        with open(executed_notebook_path, "w", encoding="utf-8") as f:
+            nbformat.write(nb, f)
+
+        return send_file(executed_notebook_path, as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 
