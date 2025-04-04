@@ -6,6 +6,12 @@ from flask_swagger_ui import get_swaggerui_blueprint
 import paramiko
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
+from prometheus_client import Counter, Summary, generate_latest, CONTENT_TYPE_LATEST
+from flask import Response
+
+# Define Prometheus metrics
+INFERENCE_REQUESTS = Counter('inference_requests_total', 'Total number of inference requests')
+INFERENCE_LATENCY = Summary('inference_latency_seconds', 'Time spent handling inference')
 
 
 app = Flask(__name__)
@@ -219,6 +225,10 @@ def test_local_model():
 
 
 
+
+@app.route('/metrics')
+def metrics():
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 
 
