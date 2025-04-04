@@ -230,6 +230,13 @@ def test_local_model():
 def metrics():
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
+@app.route('/predict', methods=['POST'])
+@INFERENCE_LATENCY.time()  # Time spent on inference
+def predict():
+    INFERENCE_REQUESTS.inc()
+    # Simulate inference logic
+    return jsonify({"result": "fake-prediction"})
+
 
 
 
