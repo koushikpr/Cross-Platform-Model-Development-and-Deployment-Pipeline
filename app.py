@@ -39,9 +39,6 @@ def upload_model_route():
 @app.route("/model/status", methods=["GET"])
 def check_model_status():
     return deployment_status(request)
-if __name__ == "__main__":
-    app.run(debug=True)
-
 
 
 @app.route("/model/upload/s3", methods=["POST"])
@@ -51,3 +48,8 @@ def upload_model_s3():
 @app.route("/model/status/s3", methods=["GET"])
 def check_model_s3():
     return get_model_status_s3(request)
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
