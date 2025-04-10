@@ -5,9 +5,28 @@
     "description": "API to manage Terraform infrastructure",
     "version": "1.0.0"
   },
+  "tags": [
+  {
+    "name": "Terraform",
+    "description": "Endpoints to launch and manage EC2/OpenStack infrastructure using Terraform"
+  },
+  {
+    "name": "Fedora Setup",
+    "description": "Endpoints to configure Fedora servers via Ansible"
+  },
+  {
+    "name": "Model Notebook Local",
+    "description": "Upload and monitor local Jupyter notebook deployments"
+  },
+  {
+    "name": "Model Notebook S3",
+    "description": "Upload and track versioned Jupyter notebooks using AWS S3"
+  }
+],
   "paths": {
     "/terraform/ec2": {
       "post": {
+        "tags": ["Terraform"],
         "summary": "Launch an EC2 instance using Terraform",
         "requestBody": {
           "required": true,
@@ -40,7 +59,9 @@
       }
     },
     "/terraform/openstack": {
+      
       "post": {
+        "tags": ["Terraform"],
         "summary": "Launch an OpenStack instance using Terraform",
         "requestBody": {
           "required": true,
@@ -73,7 +94,9 @@
       }
     },
     "/terraform/status": {
+      
       "get": {
+        "tags": ["Terraform"],
         "summary": "Get instance status",
         "responses": {
           "200": {
@@ -106,6 +129,7 @@
     },
     "/deploy/fedora": {
       "post": {
+        "tags": ["Fedora Setup"],
         "summary": "Deploy Fedora Server with Ansible",
         "requestBody": {
           "required": true,
@@ -145,7 +169,9 @@
       }
     },
     "/redirect/jupyter": {
+      
       "get": {
+        "tags": ["Fedora Setup"],
         "summary": "Redirect to Jupyter Notebook on the deployed Fedora Server",
         "parameters": [
           {
@@ -165,7 +191,9 @@
       }
     },
     "/test/local": {
+      
       "post": {
+        "tags": ["Fedora Setup"],
         "summary": "Run a Jupyter Notebook locally",
         "requestBody": {
           "required": true,
@@ -213,7 +241,9 @@
       }
     },
     "/model/upload": {
+      
       "post": {
+        "tags": ["Model Notebook Local"],
         "summary": "Upload a local model notebook",
         "requestBody": {
           "required": true,
@@ -282,7 +312,9 @@
       }
     },
     "/model/status": {
+      
       "get": {
+        "tags": ["Model Notebook Local"],
         "summary": "Check deployment status of a local model",
         "parameters": [
           {
@@ -340,7 +372,9 @@
       }
     },
     "/model/upload/s3": {
+      
       "post": {
+        "tags": ["Model Notebook S3"],
         "summary": "Upload model notebook to AWS S3 with versioning",
         "requestBody": {
           "required": true,
@@ -395,6 +429,7 @@
     },
     "/model/status/s3": {
       "get": {
+        "tags": ["Model Notebook S3"],
         "summary": "Check deployment status of a model in S3",
         "parameters": [
           {
