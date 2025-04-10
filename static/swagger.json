@@ -134,7 +134,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": { "type": "string" },
+                    "message": { "type": "string" , "default": "10.156.115.33"},
                     "redirect_url": { "type": "string" }
                   }
                 }
@@ -165,53 +165,277 @@
       }
     },
     "/test/local": {
-  "post": {
-    "summary": "Run a Jupyter Notebook locally",
-    "requestBody": {
-      "required": true,
-      "content": {
-        "multipart/form-data": {
-          "schema": {
-            "type": "object",
-            "properties": {
-              "notebook_file": {
-                "type": "string",
-                "format": "binary",
-                "description": "The Jupyter Notebook (.ipynb) file to be executed locally."
-              },
-              "model_name": {
-                "type": "string",
-                "description": "The name of the model to be tested within the notebook."
+      "post": {
+        "summary": "Run a Jupyter Notebook locally",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notebook_file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The Jupyter Notebook (.ipynb) file to be executed locally."
+                  },
+                  "model_name": {
+                    "type": "string",
+                    "description": "The name of the model to be tested within the notebook."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notebook executed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "executed_notebook": { "type": "string", "description": "Download URL for the executed notebook." }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data"
+          },
+          "500": {
+            "description": "Error executing the notebook"
+          }
+        }
+      }
+    },
+    "/model/upload": {
+      "post": {
+        "summary": "Upload a local model notebook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model_name": {
+                    "type": "string",
+                    "description": "The name of the model"
+                  },
+                  "model_description": {
+                    "type": "string",
+                    "description": "Description of the model"
+                  },
+                  "model_version": {
+                    "type": "string",
+                    "description": "Version of the model"
+                  },
+                  "model_file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Notebook file (.ipynb)"
+                  }
+                },
+                "required": ["model_name", "model_description", "model_file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Model uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "model_name": { "type": "string" },
+                    "version": { "type": "string" },
+                    "notebook_url": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Failed to Upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "model_name": { "type": "string" },
+                    "version": { "type": "string" },
+                    "notebook_url": { "type": "string" }
+                  }
+                }
               }
             }
           }
         }
       }
     },
-    "responses": {
-      "200": {
-        "description": "Notebook executed successfully",
-        "content": {
-          "application/json": {
+    "/model/status": {
+      "get": {
+        "summary": "Check deployment status of a local model",
+        "parameters": [
+          {
+            "name": "model_name",
+            "in": "query",
+            "required": true,
             "schema": {
-              "type": "object",
-              "properties": {
-                "message": { "type": "string" },
-                "executed_notebook": { "type": "string", "description": "Download URL for the executed notebook." }
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "Development"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deployment status of the model",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model_name": { "type": "string" },
+                    "status": { "type": "string" },
+                    "environment": { "type": "string" },
+                    "version": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Model not found or notebook missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties":{
+                    "model_name": { "type": "string" },
+                    "status": { "type": "string" },
+                    "environment": { "type": "string" },
+                    "version": { "type": "string" }
+                  }
+                }
               }
             }
           }
         }
-      },
-      "400": {
-        "description": "Invalid request data"
-      },
-      "500": {
-        "description": "Error executing the notebook"
+      }
+    },
+    "/model/upload/s3": {
+      "post": {
+        "summary": "Upload model notebook to AWS S3 with versioning",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model_name": {
+                    "type": "string",
+                    "description": "Model name"
+                  },
+                  "model_description": {
+                    "type": "string",
+                    "description": "Description"
+                  },
+                  "model_version": {
+                    "type": "string",
+                    "description": "Model version"
+                  },
+                  "model_file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Notebook file to upload (.ipynb)"
+                  }
+                },
+                "required": ["model_name", "model_description", "model_file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Model uploaded to S3",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "model_name": { "type": "string" },
+                    "version": { "type": "string" },
+                    "s3_key": { "type": "string" },
+                    "version_id": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/model/status/s3": {
+      "get": {
+        "summary": "Check deployment status of a model in S3",
+        "parameters": [
+          {
+            "name": "model_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "Development"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deployment status of the S3 model",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model_name": { "type": "string" },
+                    "status": { "type": "string" },
+                    "environment": { "type": "string" },
+                    "s3_key": { "type": "string" },
+                    "version_id": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
-  }
-}
 
   }
 }
