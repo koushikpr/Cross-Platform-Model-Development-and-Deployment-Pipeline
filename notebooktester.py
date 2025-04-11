@@ -31,7 +31,7 @@ def test_local_model(request):
         return jsonify({"error": str(e)}), 500
 
 MODEL_BASE_DIR = "/home/aman/Downloads/models/"
-JUPYTER_URL_PREFIX = "http://10.156.115.33:8080/notebooks/models/"
+JUPYTER_URL_PREFIX = "http://10.156.115.33:8080/notebooks/Downloads/models/"
 
 def upload_model(request):
     try:
