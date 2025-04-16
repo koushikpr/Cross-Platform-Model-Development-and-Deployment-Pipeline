@@ -5,7 +5,14 @@ from openstacksetup import create_instance_openstack
 from fedorasetup import deploy_fedora
 from notebooktester import test_local_model, upload_model, deployment_status
 from s3modelmanager import upload_model_to_s3, get_model_status_s3
+from flask_cors import CORS
+
+
 app = Flask(__name__)
+
+
+
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 SWAGGER_URL = '/swagger'
 API_URL = '/static/swagger.json'
