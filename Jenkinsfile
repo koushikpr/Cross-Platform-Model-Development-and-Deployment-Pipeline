@@ -2,9 +2,8 @@ pipeline {
     agent any
 
     environment {
-        BASE_DIR = "/home/aman/Desktop"
-        OLD_DIR = "${BASE_DIR}/Cross-Platform-Model-Development-and-Deployment-Pipeline"
-        BACKUP_DIR = "${BASE_DIR}/prev"
+        OLD_DIR = "${WORKSPACE}/Cross-Platform-Model-Development-and-Deployment-Pipeline"
+        BACKUP_DIR = "${WORKSPACE}/prev"
         SERVICE_NAME = "flaskapp.service"
         REPO_URL = "https://github.com/koushikpr/Cross-Platform-Model-Development-and-Deployment-Pipeline.git"
     }
@@ -13,7 +12,7 @@ pipeline {
         stage('Backup or Remove Old Project') {
             steps {
                 script {
-                    if (fileExists(OLD_DIR)) {
+                    if (fileExists("${OLD_DIR}")) {
                         sh '''
                             mkdir -p ${BACKUP_DIR}
                             TIMESTAMP=$(date +%Y%m%d%H%M%S)
@@ -32,7 +31,9 @@ pipeline {
 
         stage('Install Requirements') {
             steps {
-                sh "pip3 install -r ${OLD_DIR}/requirements.txt"
+                dir("${OLD_DIR}") {
+                    sh "pip3 install -r requirements.txt"
+                }
             }
         }
 
