@@ -14,9 +14,9 @@ pipeline {
                 script {
                     if (fileExists("${OLD_DIR}")) {
                         sh '''
-                            mkdir -p ${BACKUP_DIR}
+                            mkdir -p "$BACKUP_DIR"
                             TIMESTAMP=$(date +%Y%m%d%H%M%S)
-                            mv ${OLD_DIR} ${BACKUP_DIR}/Cross-Platform-Model-Development-and-Deployment-Pipeline-$TIMESTAMP
+                            mv "$OLD_DIR" "$BACKUP_DIR/Cross-Platform-Model-Development-and-Deployment-Pipeline-$TIMESTAMP"
                         '''
                     }
                 }
@@ -25,7 +25,10 @@ pipeline {
 
         stage('Clone Repo') {
             steps {
-                sh "git clone ${REPO_URL} ${OLD_DIR}"
+                sh '''
+                    echo "Cloning into ${OLD_DIR}"
+                    git clone "${REPO_URL}" "${OLD_DIR}"
+                '''
             }
         }
 
@@ -39,8 +42,11 @@ pipeline {
 
         stage('Restart Flask App') {
             steps {
-                sh "sudo systemctl daemon-reexec"
-                sh "sudo systemctl restart ${SERVICE_NAME}"
+                sh '''
+                    echo "Restarting Flask service..."
+                    sudo systemctl daemon-reexec
+                    sudo systemctl restart "$SERVICE_NAME"
+                '''
             }
         }
     }
