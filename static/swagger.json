@@ -470,7 +470,82 @@
           }
         }
       }
+    },
+    "/list-models": {
+      "get": {
+        "tags": ["Model Notebook S3"],
+        "summary": "List all uploaded ML models",
+        "description": "Returns a list of all .ipynb models uploaded to the S3 bucket, including model metadata and public URL.",
+        "responses": {
+          "200": {
+            "description": "A list of uploaded models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "models": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "model_name": {
+                            "type": "string",
+                            "example": "resnet50"
+                          },
+                          "model_description": {
+                            "type": "string",
+                            "example": "Image classifier using ResNet50"
+                          },
+                          "model_version": {
+                            "type": "string",
+                            "example": "1.0.2"
+                          },
+                          "file_name": {
+                            "type": "string",
+                            "example": "resnet50.ipynb"
+                          },
+                          "s3_key": {
+                            "type": "string",
+                            "example": "models/resnet50/resnet50.ipynb"
+                          },
+                          "public_url": {
+                            "type": "string",
+                            "format": "uri",
+                            "example": "https://mldaasmodels.s3.amazonaws.com/models/resnet50/resnet50.ipynb"
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "type": "integer",
+                      "example": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Internal error retrieving model list"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
+
 
   }
 }

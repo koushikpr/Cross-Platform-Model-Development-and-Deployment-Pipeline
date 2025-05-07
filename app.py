@@ -4,7 +4,7 @@ from cloudsetup import create_instance_ec2
 from openstacksetup import create_instance_openstack
 from fedorasetup import deploy_fedora
 from notebooktester import test_local_model, upload_model, deployment_status
-from s3modelmanager import upload_model_to_s3, get_model_status_s3
+from s3modelmanager import upload_model_to_s3, get_model_status_s3, list_all_models_s3
 from flask_cors import CORS
 
 
@@ -55,6 +55,13 @@ def upload_model_s3():
 @app.route("/model/status/s3", methods=["GET"])
 def check_model_s3():
     return get_model_status_s3(request)
+
+
+@app.route("/list-models", methods=["GET"])
+def handle_list():
+    return list_all_models_s3()
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

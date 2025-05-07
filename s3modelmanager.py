@@ -25,7 +25,6 @@ s3 = boto3.client(
     region_name="us-east-1"  
 )
 
-
 def upload_model_to_s3(request):
     try:
         model_name = request.form.get("model_name")
@@ -39,9 +38,8 @@ def upload_model_to_s3(request):
         if not file.filename.endswith(".ipynb"):
             return jsonify({"error": "Invalid file format. Only .ipynb allowed"}), 400
 
-        # Optional: validate notebook format
         nb = nbformat.read(file, as_version=4)
-        file.seek(0)  # Reset file pointer after reading
+        file.seek(0)
 
         s3_key = f"{S3_FOLDER}{model_name}/{file.filename}"
 
@@ -58,18 +56,19 @@ def upload_model_to_s3(request):
         )
 
         version_id = response.get("VersionId", "null")
+        public_url = f"https://{S3_BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
 
         return jsonify({
             "message": "Model uploaded to S3 successfully",
             "model_name": model_name,
             "version": model_version,
             "s3_key": s3_key,
+            "public_url": public_url,
             "version_id": version_id
         }), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 def get_model_status_s3(request):
     try:
@@ -94,6 +93,53 @@ def get_model_status_s3(request):
             "environment": environment,
             "s3_key": latest["Key"],
             "version_id": latest["VersionId"]
+        }), 200
+
+    except ClientError as ce:
+        return jsonify({"error": str(ce)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
+def list_all_models_s3():
+    try:
+        prefix = S3_FOLDER  # "models/"
+        paginator = s3.get_paginator("list_objects_v2")
+        pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=prefix)
+
+        models = []
+
+        for page in pages:
+            for obj in page.get("Contents", []):
+                key = obj["Key"]  # e.g., models/modelA/file.ipynb
+
+                # Only consider .ipynb files
+                if not key.endswith(".ipynb"):
+                    continue
+
+                try:
+                    # Get metadata from the object
+                    head = s3.head_object(Bucket=S3_BUCKET_NAME, Key=key)
+                    metadata = head.get("Metadata", {})
+
+                    model_info = {
+                        "model_name": metadata.get("model_name", "unknown"),
+                        "model_description": metadata.get("model_description", "N/A"),
+                        "model_version": metadata.get("model_version", "N/A"),
+                        "file_name": key.split("/")[-1],
+                        "s3_key": key,
+                        "public_url": f"https://{S3_BUCKET_NAME}.s3.amazonaws.com/{key}"
+                    }
+
+                    models.append(model_info)
+
+                except ClientError as ce:
+                    # Skip inaccessible or missing metadata
+                    continue
+
+        return jsonify({
+            "models": models,
+            "count": len(models)
         }), 200
 
     except ClientError as ce:
