@@ -8,6 +8,7 @@ provider "aws" {
 variable "aws_region" {
   description = "AWS region to deploy the instance"
   type        = string
+  default = "us-east-2"
 }
 
 variable "aws_access_key" {
@@ -25,23 +26,22 @@ variable "aws_secret_key" {
 variable "ami_id" {
   description = "AMI ID for the instance"
   type        = string
+  default = "ami-058a8a5ab36292159"
 }
 
 variable "instance_type" {
   description = "Instance type to launch"
   type        = string
-  default     = "p3.2xlarge"
+  default     = "t2.micro"
 }
 
 variable "vpc_id" {
   description = "VPC ID for the instance"
   type        = string
+  default = "vpc-04a8cb127ef04a992"
 }
 
-variable "subnet_id" {
-  description = "Subnet ID where the instance will be deployed"
-  type        = string
-}
+
 
 variable "key_name" {
   description = "Key pair name for SSH access"
@@ -53,15 +53,7 @@ variable "iam_instance_profile" {
   type        = string
 }
 
-variable "ansible_s3_bucket" {
-  description = "S3 bucket containing the Ansible playbook"
-  type        = string
-}
 
-variable "ansible_playbook" {
-  description = "Ansible playbook filename (e.g., setup.yml)"
-  type        = string
-}
 
 variable "home_dir" {
   description = "Home directory of the default user"
@@ -95,7 +87,6 @@ resource "aws_instance" "p3_instance" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
   key_name               = var.key_name
-  subnet_id              = var.subnet_id
   vpc_security_group_ids = [aws_security_group.p3_sg.id]
   iam_instance_profile   = var.iam_instance_profile
 
@@ -103,35 +94,26 @@ resource "aws_instance" "p3_instance" {
     #!/bin/bash
     sudo yum update -y
     sudo yum install -y ansible aws-cli
-
+    sudo yum install -y git
     # Create Ansible Directory
     mkdir -p ${var.home_dir}/ansible
     cd ${var.home_dir}/ansible
 
-    # Fetch Ansible Playbook from S3
-    aws s3 cp s3://${var.ansible_s3_bucket}/${var.ansible_playbook} ${var.home_dir}/ansible/
 
     # Fetch Ansible Playbook from Git
     git clone https://github.com/koushikpr/Cross-Platform-Model-Development-and-Deployment-Pipeline
 
     cd Cross-Platform-Model-Development-and-Deployment-Pipeline
 
-    echo "Installing Grafana"
-
-    ansible-playbook ansible/configurations/grafana-setup.yml
-
-    echo "Installing Nvidia-CUDA"
-
-    ansible-playbook ansible/configurations/nvidia-setup.yml
-
-    echo "Installing Jupyter-Notebook"
-
-    ansible-playbook ansible/configurations/jupyter-setup.yml
+    
 
     
 
-    # Run the Playbook for Library
-    ansible-playbook ${var.ansible_playbook}
+    echo "Installing Jupyter-Notebook"
+
+    ansible-playbook ansible/configurations/ec2/jupyter-setup.yml
+
+    
   EOF
 
   tags = {

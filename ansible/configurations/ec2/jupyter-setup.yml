@@ -1,0 +1,72 @@
+---
+- name: Install and run Jupyter Notebook in virtualenv on EC2
+  hosts: localhost
+  become: yes
+  vars:
+    target_user: ec2-user
+    venv_path: /home/ec2-user/venv
+    jupyter_port: 8080
+    jupyter_config_file: "/home/ec2-user/.jupyter/jupyter_notebook_config.py"
+
+  tasks:
+    - name: Install system dependencies
+      yum:
+        name:
+          - python3
+          - python3-pip
+          - python3-virtualenv
+        state: present
+
+    - name: Create virtualenv for ec2-user
+      command: python3 -m venv {{ venv_path }}
+      args:
+        creates: "{{ venv_path }}/bin/activate"
+
+    - name: Install Jupyter in virtualenv
+      pip:
+        virtualenv: "{{ venv_path }}"
+        name:
+          - jupyter
+          - notebook
+
+    - name: Generate Jupyter config
+      shell: "{{ venv_path }}/bin/jupyter notebook --generate-config"
+      args:
+        creates: "{{ jupyter_config_file }}"
+      become_user: "{{ target_user }}"
+
+    - name: Set Jupyter Notebook config options
+      blockinfile:
+        path: "{{ jupyter_config_file }}"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Jupyter Settings"
+        block: |
+          c.NotebookApp.ip = '0.0.0.0'
+          c.NotebookApp.port = {{ jupyter_port }}
+          c.NotebookApp.open_browser = False
+          c.NotebookApp.allow_root = True
+      become_user: "{{ target_user }}"
+
+    - name: Create systemd service for Jupyter in virtualenv
+      copy:
+        dest: /etc/systemd/system/jupyter.service
+        content: |
+          [Unit]
+          Description=Jupyter Notebook
+          After=network.target
+
+          [Service]
+          Type=simple
+          User={{ target_user }}
+          ExecStart={{ venv_path }}/bin/jupyter notebook --config={{ jupyter_config_file }}
+          WorkingDirectory=/home/{{ target_user }}
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd and start Jupyter service
+      systemd:
+        daemon_reload: yes
+        name: jupyter
+        enabled: yes
+        state: started
