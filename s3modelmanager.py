@@ -2,11 +2,28 @@ import nbformat
 import boto3
 from flask import jsonify
 from botocore.exceptions import ClientError
+import csv
+import os
 
-S3_BUCKET_NAME = "your-s3-model-bucket"  # Replace with your actual bucket name
+S3_BUCKET_NAME = "mldaasmodels"  # Replace with your actual bucket name
 S3_FOLDER = "models/"
 
-s3 = boto3.client("s3")
+CREDENTIALS_CSV = "s3key.csv"
+def get_aws_credentials_from_csv():
+    with open(CREDENTIALS_CSV, mode='r', encoding='utf-8-sig') as file:
+        reader = csv.DictReader(file)
+        row = next(reader)
+        return row["Access key ID"], row["Secret access key"]
+
+aws_access_key_id, aws_secret_access_key = get_aws_credentials_from_csv()
+
+
+s3 = boto3.client(
+    "s3",
+    aws_access_key_id=aws_access_key_id,
+    aws_secret_access_key=aws_secret_access_key,
+    region_name="us-east-1"  
+)
 
 
 def upload_model_to_s3(request):
@@ -32,6 +49,7 @@ def upload_model_to_s3(request):
             Bucket=S3_BUCKET_NAME,
             Key=s3_key,
             Body=file,
+            ACL='public-read',
             Metadata={
                 "model_name": model_name,
                 "model_description": model_description,
