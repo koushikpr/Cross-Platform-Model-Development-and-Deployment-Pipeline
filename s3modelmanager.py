@@ -8,7 +8,7 @@ import os
 S3_BUCKET_NAME = "mldaasmodels"  # Replace with your actual bucket name
 S3_FOLDER = "models/"
 
-CREDENTIALS_CSV = "s3key.csv"
+CREDENTIALS_CSV = "/home/aman/s3key.csv"
 def get_aws_credentials_from_csv():
     with open(CREDENTIALS_CSV, mode='r', encoding='utf-8-sig') as file:
         reader = csv.DictReader(file)
