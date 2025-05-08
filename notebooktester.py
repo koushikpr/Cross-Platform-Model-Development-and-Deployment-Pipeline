@@ -175,8 +175,9 @@ def deploy_model_as_api(request):
         subprocess.Popen(
             ["python3", "app.py"],
             cwd=deploy_dir,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stdout=open(os.path.join(deploy_dir, "app_stdout.log"), "w"),
+            stderr=open(os.path.join(deploy_dir, "app_stderr.log"), "w"),
+            start_new_session=True  # important for detaching the process cleanly
         )
 
         # Step 5: Return endpoint
