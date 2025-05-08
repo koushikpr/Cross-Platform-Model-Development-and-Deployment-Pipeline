@@ -3,7 +3,7 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from cloudsetup import create_instance_ec2
 from openstacksetup import create_instance_openstack
 from fedorasetup import deploy_fedora
-from notebooktester import test_local_model, upload_model, deployment_status
+from notebooktester import test_local_model, upload_model, deployment_status,deploy_model_as_api
 from s3modelmanager import upload_model_to_s3, get_model_status_s3, list_all_models_s3
 from flask_cors import CORS
 
@@ -47,6 +47,12 @@ def upload_model_route():
 def check_model_status():
     return deployment_status(request)
 
+@app.route("/deploy_model", methods=["POST"])
+def deploy_model_route():
+    return deploy_model_as_api(request)
+
+
+
 
 @app.route("/model/upload/s3", methods=["POST"])
 def upload_model_s3():
@@ -60,6 +66,8 @@ def check_model_s3():
 @app.route("/list-models", methods=["GET"])
 def handle_list():
     return list_all_models_s3()
+
+
 
 
 

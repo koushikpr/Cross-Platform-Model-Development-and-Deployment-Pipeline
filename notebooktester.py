@@ -2,6 +2,8 @@ import os
 import nbformat
 from flask import jsonify, request
 import requests
+import shutil
+import subprocess
 
 def test_local_model(request):
     try:
@@ -125,3 +127,65 @@ def deployment_status(request):
             "environment": environment,
             "version": "1.0.0"
         }), 404
+
+DEPLOY_SCRIPT = "deployment/generate_pred_script.py"
+DEPLOY_BASE = "/home/aman/Downloads/deployed_models/"
+APP_PORT = 5001
+
+def deploy_model_as_api(request):
+    try:
+        model_name = request.args.get("model_name")
+        model_filename = request.args.get("model_filename")  # e.g., Test.ipynb
+        model_class = request.args.get("model_code_name")
+        environment = request.args.get("environment", "Production")
+
+        if not all([model_name, model_filename, model_class]):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Prepare paths
+        model_dir = os.path.join(MODEL_BASE_DIR, model_name)
+        if not os.path.exists(model_dir):
+            return jsonify({"error": "Model not found"}), 404
+
+        deploy_dir = os.path.join(DEPLOY_BASE, model_name)
+        os.makedirs(deploy_dir, exist_ok=True)
+
+        # Step 1: Copy .ipynb and model.pt
+        for fname in [model_filename, "model.pt"]:
+            src = os.path.join(model_dir, fname)
+            dst = os.path.join(deploy_dir, fname)
+            if not os.path.exists(src):
+                return jsonify({"error": f"File not found: {fname}"}), 404
+            shutil.copy(src, dst)
+
+        # Step 2: Copy deployment files
+        for file in os.listdir("deployment"):
+            full_path = os.path.join("deployment", file)
+            if os.path.isfile(full_path):
+                shutil.copy(full_path, deploy_dir)
+
+        # Step 3: Run generate_pred_script.py
+        gen_cmd = [
+            "python3", "generate_pred_script.py",
+            model_filename, model_class
+        ]
+        subprocess.run(gen_cmd, cwd=deploy_dir, check=True)
+
+        # Step 4: Run app.py on port 5001
+        subprocess.Popen(
+            ["python3", "app.py"],
+            cwd=deploy_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        # Step 5: Return endpoint
+        return jsonify({
+            "status": "Deployment started",
+            "url": f"http://localhost:{APP_PORT}/predict"
+        }), 200
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Script failed: {e}"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

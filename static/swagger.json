@@ -544,6 +544,65 @@
           }
         }
       }
+    },
+    "/deploy_model": {
+      "post": {
+        "tags": ["Model Notebook Local"],
+        "summary": "Deploy a trained model as a Flask API",
+        "description": "This deploys the provided .ipynb and model.pt as a new prediction endpoint using Flask.",
+        "parameters": [
+          {
+            "name": "model_name",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Name of the model folder"
+          },
+          {
+            "name": "model_filename",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "The notebook file (e.g., Test.ipynb)"
+          },
+          {
+            "name": "model_code_name",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Name of the model class (e.g., ObjectDetector)"
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "default": "Development" },
+            "description": "Environment for deployment"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful deployment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "url": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
     }
 
 
